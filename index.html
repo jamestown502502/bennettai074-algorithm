@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BENNETTAI074 — Intertidal Harvest Planning Simulator</title>
+<style>
+  :root{--accent:#2dd4bf;--accent-dim:#14b8a6;--bg:#07121f;--card:#0e1c2e;--card2:#0a1524;
+    --ink:#e2e8f0;--muted:#94a3b8;--border:#16304a;--warn:#fbbf24;--danger:#f87171;--ok:#4ade80;}
+  *{box-sizing:border-box;}
+  body{
+    margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(1200px 600px at 50% -100px,#0c2b3a 0%,var(--bg) 60%);
+    color:var(--ink);padding:24px 16px 60px;min-height:100vh;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+  header{text-align:center;margin-bottom:20px;}
+  header h1{font-size:1.5rem;margin:0 0 4px;color:var(--accent);letter-spacing:.01em;}
+  header p{color:var(--muted);margin:0;font-size:.95rem;}
+  .card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--border);
+    border-radius:16px;padding:20px;margin-bottom:16px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  label{display:block;font-size:.76rem;font-weight:600;color:var(--muted);margin-bottom:4px;
+    text-transform:uppercase;letter-spacing:.04em;}
+  select,input[type=text]{
+    width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;
+    font-size:.92rem;background:#08111f;color:var(--ink);appearance:auto;
+  }
+  select:focus,input:focus{outline:none;border-color:var(--accent);}
+  .field{margin-bottom:12px;}
+  .result-hero{
+    background:linear-gradient(135deg,#134e4a,#0f3d5c);border:1px solid #0e7490;border-radius:16px;
+    padding:22px;margin-bottom:16px;transition:transform .15s ease;
+  }
+  .result-hero.go{background:linear-gradient(135deg,#14532d,#134e4a);border-color:#16a34a;}
+  .result-hero.conditions{background:linear-gradient(135deg,#713f12,#134e4a);border-color:#d97706;}
+  .result-hero.nogo{background:linear-gradient(135deg,#7f1d1d,#3b0764);border-color:#dc2626;}
+  .result-hero .big{font-size:1.7rem;font-weight:800;color:#e0f2fe;line-height:1.15;}
+  .result-hero .label{font-size:.78rem;color:#7dd3fc;text-transform:uppercase;letter-spacing:.06em;margin-top:4px;}
+  .reason{font-size:.85rem;margin-top:10px;background:rgba(45,212,191,.12);border:1px solid rgba(45,212,191,.25);
+    border-radius:10px;padding:8px 12px;color:#99f6e4;}
+  .steps{margin:14px 0 4px;padding:0;list-style:none;}
+  .steps li{
+    display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:10px;
+    border:1px solid var(--border);background:#0a1424;margin-bottom:6px;font-size:.85rem;
+  }
+  .steps .num{flex:0 0 24px;height:24px;border-radius:50%;background:var(--accent);color:#06201c;
+    font-weight:700;font-size:.75rem;display:flex;align-items:center;justify-content:center;}
+  .flag{margin-left:auto;font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;}
+  .flag.ok{background:rgba(74,222,128,.15);color:var(--ok);}
+  .flag.warn{background:rgba(251,191,36,.15);color:var(--warn);}
+  .flag.risk{background:rgba(248,113,113,.15);color:var(--danger);}
+  .metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px;}
+  .metric{background:#0a1424;border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;}
+  .metric .v{font-size:1.25rem;font-weight:800;color:var(--accent);}
+  .metric .k{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;}
+  details{border:1px solid var(--border);border-radius:12px;padding:10px 14px;background:#0a1424;margin-bottom:12px;}
+  summary{cursor:pointer;font-weight:600;font-size:.88rem;color:var(--accent);}
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.8rem;}
+  th,td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--border);}
+  .notice{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:12px;
+    padding:14px 16px;font-size:.82rem;color:#fde68a;}
+  .safety{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.35);border-radius:12px;
+    padding:14px 16px;font-size:.82rem;color:#fecaca;}
+  .safety strong{display:block;margin-bottom:4px;color:#fca5a5;}
+  button{
+    background:var(--accent);color:#06201c;border:none;border-radius:10px;padding:10px 16px;
+    font-weight:700;font-size:.85rem;cursor:pointer;
+  }
+  button:hover{background:#5eead4;}
+  button.ghost{background:transparent;border:1px solid var(--accent);color:var(--accent);}
+  .row-between{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+  .muted{color:var(--muted);font-size:.82rem;}
+  footer{text-align:center;color:var(--muted);font-size:.75rem;margin-top:24px;line-height:1.6;}
+  a.footer-link{color:var(--accent);}
+  @media (max-width:560px){.grid{grid-template-columns:1fr;}.metrics{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>BENNETTAI074 — Intertidal Harvest Planner</h1>
+    <p>Turn tide, site, and permit conditions into a structured go/no-go harvest brief — planning aid, not harvest equipment.</p>
+  </header>
+
+  <div class="card">
+    <div class="grid">
+      <div class="field">
+        <label>Region</label>
+        <select id="region">
+          <option value="galicia" selected>Galicia, Spain (percebes cofradía)</option>
+          <option value="bc">British Columbia (co-managed)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Trip Date</label>
+        <select id="date"></select>
+      </div>
+      <div class="field">
+        <label>Site</label>
+        <select id="site"></select>
+      </div>
+      <div class="field">
+        <label>Permit / Licence</label>
+        <select id="permit"></select>
+      </div>
+      <div class="field">
+        <label>Swell (significant wave height)</label>
+        <select id="swell">
+          <option value="0.8">Calm — ~0.8 m</option>
+          <option value="1.2" selected>Moderate — ~1.2 m</option>
+          <option value="2.0">Rough — ~2.0 m</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Wind (knots)</label>
+        <select id="wind">
+          <option value="8">8 kn — light</option>
+          <option value="12" selected>12 kn — moderate</option>
+          <option value="22">22 kn — strong</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Planned Harvest (kg)</label>
+        <input type="text" id="target" value="14">
+      </div>
+    </div>
+  </div>
+
+  <div id="verdict" class="result-hero conditions">
+    <div class="big">GO — with conditions</div>
+    <div class="label">Planning verdict · sample tide &amp; rule data · human decision required</div>
+    <div class="reason" id="verdictReason">Tide window OK · swell within threshold · site open · harvest target capped by quota-headroom rule.</div>
+  </div>
+
+  <div class="card">
+    <div class="row-between" style="margin-bottom:6px">
+      <strong style="font-size:.88rem">Go / No-Go checks</strong>
+      <button class="ghost" id="copyBtn">Copy brief as text</button>
+    </div>
+    <ul class="steps" id="checks"></ul>
+    <div class="metrics" id="metrics"></div>
+  </div>
+
+  <div class="card">
+    <details open>
+      <summary>See the rules — how this verdict is derived</summary>
+      <table>
+        <tr><th>Check</th><th>Rule</th></tr>
+        <tr><td>Tide window</td><td>Best low-tide exposure ≥ 2.5 hours, from the region's sample tide set</td></tr>
+        <tr><td>Swell</td><td>Significant wave height ≤ 1.5 m (Galicia) / ≤ 1.8 m (BC) — illustrative thresholds, not a marine-safety assessment</td></tr>
+        <tr><td>Site status</td><td>Open: any permit · Managed: licensed/commercial permit only · Restricted: no-go (sample no-take areas)</td></tr>
+        <tr><td>Harvest limiter</td><td>Suggested take = min(planned, 80% × region quota headroom per window)</td></tr>
+        <tr><td>Wind caution</td><td>&gt; 20 kn adds a caution flag but is not an automatic no-go</td></tr>
+      </table>
+      <p class="muted" style="margin-top:8px">Public rules, no hidden weights. This is decision support for a qualified human — it is not a safety system, not a legal determination, and not harvest equipment.</p>
+    </details>
+    <details>
+      <summary>Tide window (sample set, region-specific)</summary>
+      <table id="tideTable"></table>
+      <p class="muted" style="margin-top:8px">Illustrative sample tide values for demo purposes only. A pilot would bind to a verified regional tide service and to the regulator's own exposure rules.</p>
+    </details>
+  </div>
+
+  <div class="notice">
+    <strong>Sample rules, not legal determinations.</strong> Quota figures, site statuses, and tide values in this simulator are illustrative sample rule sets so the workflow can be inspected. Binding limits come from the regional regulator (Xunta de Galicia cofradía system; DFO/co-managed fisheries in BC) and must be versioned and verified before any real planning use. All numeric rules are labeled as samples — none are field-validated.
+  </div>
+
+  <div class="safety">
+    <strong>What this does NOT do</strong>
+    This tool does not harvest, does not deploy drones, robotic arms, or any extraction equipment, does not assess crew or vessel safety, does not certify seaworthiness, does not grant or verify permits, and does not determine legal harvest rights. The autonomous drone harvester is a future research target, not a current capability. A qualified human makes every go/no-go call.
+  </div>
+
+  <footer>
+    Concept-stage program · Bennett Coastal Harvest Intelligence · Bennett AI Solutions Inc.<br>
+    <a class="footer-link" href="algorithm.html">Public algorithm &amp; rules</a> · <a class="footer-link" href="methodology.md">Methodology</a> · No hidden weights · No fabricated data
+  </footer>
+</div>
+
+<script>
+/* ---------------- Sample data (illustrative, clearly labeled) ---------------- */
+const REGIONS = {
+  galicia: {
+    label: "Galicia, Spain",
+    swellMax: 1.5, quotaDaily: 8, // sample kg/day/crew — NOT a verified regional quota
+    seasonNote: "Sample rule set for demo. Real Galicia rules come from Xunta-approved cofradía management plans and vary by area and season.",
+    permits: ["licensed", "recreational"],
+    sites: {
+      cabovilan:   { name: "Cabo Vilán — exposed headland",   density: 0.8, risk: 3, status: "open" },
+      roncos:      { name: "Roncos do Cabo — managed area",   density: 0.6, risk: 4, status: "managed" },
+      ons:         { name: "Ons Island — Atlantic Islands NP", density: 0.9, risk: 2, status: "restricted" }
+    },
+    tides: {
+      "2026-09-18": [{t:"08:20",e:2.1},{t:"20:45",e:2.7}],
+      "2026-09-19": [{t:"09:41",e:2.65},{t:"22:08",e:3.1}],
+      "2026-09-20": [{t:"10:55",e:2.9},{t:"23:12",e:2.4}],
+      "2026-09-21": [{t:"12:02",e:2.35},{t:"—",e:0}],
+      "2026-09-22": [{t:"00:11",e:1.9},{t:"13:05",e:2.05}],
+      "2026-09-23": [{t:"01:22",e:2.5},{t:"14:02",e:2.6}],
+      "2026-09-24": [{t:"02:30",e:3.0},{t:"14:55",e:2.75}]
+    }
+  },
+  bc: {
+    label: "British Columbia",
+    swellMax: 1.8, quotaDaily: 25, // sample kg/day/commercial licence — NOT a verified DFO quota
+    seasonNote: "Sample rule set for demo. Real BC rules come from DFO and the co-managed commercial gooseneck fishery's management plan.",
+    permits: ["commercial", "recreational"],
+    sites: {
+      bamfield:  { name: "Bamfield area — outer coast",  density: 0.7, risk: 3, status: "open" },
+      tofino:    { name: "Tofino outer coast",           density: 0.6, risk: 4, status: "managed" },
+      racerocks: { name: "Race Rocks — protected area",  density: 0.5, risk: 5, status: "restricted" }
+    },
+    tides: {
+      "2026-09-18": [{t:"07:10",e:2.3},{t:"19:35",e:2.8}],
+      "2026-09-19": [{t:"08:32",e:2.7},{t:"20:58",e:3.2}],
+      "2026-09-20": [{t:"09:46",e:2.95},{t:"22:04",e:2.5}],
+      "2026-09-21": [{t:"10:53",e:2.4},{t:"—",e:0}],
+      "2026-09-22": [{t:"00:05",e:2.0},{t:"11:56",e:2.1}],
+      "2026-09-23": [{t:"01:16",e:2.6},{t:"12:55",e:2.65}],
+      "2026-09-24": [{t:"02:24",e:3.1},{t:"13:48",e:2.8}]
+    }
+  }
+};
+const SITE_STATUS = { open: "Open", managed: "Managed — permit required", restricted: "Restricted — no-go (sample)" };
+const PERMIT_LABEL = { licensed: "Licensed percebeiro (cofradía)", recreational: "Recreational", commercial: "Commercial licence (co-managed)" };
+
+/* ---------------- UI wiring ---------------- */
+const $ = id => document.getElementById(id);
+const regionSel = $("region"), dateSel = $("date"), siteSel = $("site"), permitSel = $("permit");
+
+function fillDates(){
+  const reg = REGIONS[regionSel.value];
+  dateSel.innerHTML = Object.keys(reg.tides).map(d => `<option value="${d}">${d}</option>`).join("");
+}
+function fillSites(){
+  const reg = REGIONS[regionSel.value];
+  siteSel.innerHTML = Object.entries(reg.sites).map(([k,s]) => `<option value="${k}">${s.name}</option>`).join("");
+}
+function fillPermits(){
+  const reg = REGIONS[regionSel.value];
+  permitSel.innerHTML = reg.permits.map(p => `<option value="${p}">${PERMIT_LABEL[p]}</option>`).join("");
+}
+function onRegionChange(){
+  fillDates(); fillSites(); fillPermits();
+  // sensible default permit for the region
+  if (regionSel.value === "galicia") permitSel.value = "licensed";
+  else permitSel.value = "commercial";
+  render();
+}
+regionSel.addEventListener("change", onRegionChange);
+dateSel.addEventListener("change", render);
+siteSel.addEventListener("change", render);
+permitSel.addEventListener("change", render);
+["swell","wind","target"].forEach(id => $(id).addEventListener("change", render));
+$("target").addEventListener("input", render);
+$("copyBtn").addEventListener("click", copyBrief);
+
+/* ---------------- Engine (public rules, no hidden weights) ---------------- */
+function evaluate(){
+  const reg = REGIONS[regionSel.value];
+  const date = dateSel.value, siteKey = siteSel.value;
+  const site = reg.sites[siteKey];
+  const permit = permitSel.value;
+  const swell = parseFloat($("swell").value), wind = parseFloat($("wind").value);
+  const target = Math.max(0, parseFloat($("target").value) || 0);
+
+  // 1) tide: best low window exposure
+  const lows = reg.tides[date] || [];
+  const best = lows.reduce((a,b) => (b.e > a.e ? b : a), {t:"—",e:0});
+  const tideOK = best.e >= 2.5;
+
+  // 2) swell threshold
+  const swellOK = swell <= reg.swellMax;
+
+  // 3) site status vs permit
+  let siteOK = true, siteReason = SITE_STATUS[site.status];
+  if (site.status === "restricted") siteOK = false;
+  else if (site.status === "managed" && permit === "recreational") siteOK = false;
+
+  // 4) harvest limiter: min(target, 80% quota headroom)
+  const headroom = reg.quotaDaily * 0.8;
+  const suggested = Math.min(target, headroom);
+  const capped = suggested < target - 0.001;
+
+  // 5) wind caution
+  const windCaution = wind > 20;
+
+  // suitability score (public weights)
+  const permitFactor = site.status === "restricted" ? 0 : (site.status === "managed" ? 0.85 : 1);
+  const score = Math.round(100 * (0.45*site.density + 0.35*(5-site.risk)/4 + 0.20*permitFactor));
+
+  const failed = [];
+  if (!tideOK) failed.push("Tide exposure under 2.5 h on the selected date");
+  if (!swellOK) failed.push(`Swell ${swell.toFixed(1)} m exceeds the ${reg.swellMax.toFixed(1)} m sample threshold`);
+  if (!siteOK) failed.push(`Site is ${SITE_STATUS[site.status].toLowerCase()} for this permit`);
+
+  const verdict = failed.length === 0
+    ? (capped || windCaution ? "conditions" : "go")
+    : "nogo";
+
+  const checks = [
+    { n: "Tide window", r: `Best low tide ${best.t} · ${best.e.toFixed(2)} h exposure`, ok: tideOK },
+    { n: "Swell", r: `${swell.toFixed(1)} m vs ${reg.swellMax.toFixed(1)} m sample limit`, ok: swellOK },
+    { n: "Site / permit", r: `${site.name} — ${SITE_STATUS[site.status].toLowerCase()} for ${PERMIT_LABEL[permit]}`, ok: siteOK },
+    { n: "Harvest limiter", r: capped
+        ? `Planned ${target} kg capped to ${suggested.toFixed(1)} kg (80% of ${reg.quotaDaily} kg sample headroom)`
+        : `Planned ${target} kg within the ${suggested.toFixed(1)} kg sample headroom`, ok: true },
+    { n: "Wind", r: `${wind} kn${windCaution ? " — caution flag (sample rule)" : " — within caution threshold"}`, ok: !windCaution }
+  ];
+
+  return { verdict, failed, checks, site, reg, score, best, capped, suggested, windCaution, target };
+}
+
+function fmtVerdict(v){
+  if (v === "go") return { label: "GO", sub: "Planning verdict · all sample checks pass · human decision required" };
+  if (v === "conditions") return { label: "GO — with conditions", sub: "Planning verdict · conditions below · human decision required" };
+  return { label: "NO-GO", sub: "Planning verdict · one or more sample checks failed · human decision required" };
+}
+
+function render(){
+  const e = evaluate();
+  const hero = $("verdict");
+  hero.className = "result-hero " + e.verdict;
+  const fv = fmtVerdict(e.verdict);
+  hero.querySelector(".big").textContent = fv.label;
+  hero.querySelector(".label").textContent = fv.sub;
+
+  const reasonParts = [];
+  if (e.failed.length === 0 && e.verdict === "go") reasonParts.push("all sample checks pass");
+  if (e.verdict === "conditions"){
+    if (e.capped) reasonParts.push(`harvest target capped ${e.target} kg → ${e.suggested.toFixed(1)} kg by quota-headroom rule`);
+    if (e.windCaution) reasonParts.push("wind caution flag raised");
+  }
+  if (e.failed.length) reasonParts.push("blocked: " + e.failed.join("; "));
+  $("verdictReason").textContent = "Reason: " + reasonParts.join(" · ") + " — sample rules, not a legal or safety determination.";
+
+  $("checks").innerHTML = e.checks.map((c,i) => `
+    <li><span class="num">${i+1}</span><span>${c.n} — ${c.r}</span>
+    <span class="flag ${c.ok ? "ok" : "risk"}">${c.ok ? "PASS" : "FAIL"}</span></li>`).join("");
+
+  $("metrics").innerHTML = `
+    <div class="metric"><div class="v">${e.score}/100</div><div class="k">Site suitability (sample)</div></div>
+    <div class="metric"><div class="v">${e.suggested.toFixed(1)} kg</div><div class="k">Suggested max take (sample rule)</div></div>
+    <div class="metric"><div class="v">${e.best.t}</div><div class="k">Best low-tide window</div></div>`;
+
+  const reg = e.reg;
+  $("tideTable").innerHTML = `<tr><th>Date</th><th>Low tide</th><th>Exposure (h)</th><th>Window OK</th></tr>` +
+    Object.entries(reg.tides).map(([d,lows]) => lows.map(l => `
+      <tr><td>${d}</td><td>${l.t}</td><td>${l.e.toFixed(2)}</td><td>${l.e >= 2.5 ? "Yes" : "No"}</td></tr>`).join("")).join("");
+}
+
+/* ---------------- Copy brief ---------------- */
+function copyBrief(){
+  const e = evaluate();
+  const fv = fmtVerdict(e.verdict);
+  const lines = [
+    "BENNETTAI074 — Harvest Planning Brief (sample rules)",
+    `Verdict: ${fv.label}`,
+    `Region: ${e.reg.label} · Date: ${dateSel.value} · Site: ${e.site.name} · Permit: ${PERMIT_LABEL[permitSel.value]}`,
+    ...e.checks.map(c => `${c.ok ? "PASS" : "FAIL"} — ${c.n}: ${c.r}`),
+    `Site suitability: ${e.score}/100 (sample survey estimates, not field-validated)`,
+    "This is a planning aid with sample rules — not a safety assessment, not a legal determination, and not harvest equipment."
+  ];
+  const text = lines.join("\n");
+  try { navigator.clipboard.writeText(text).catch(() => fallbackCopy(text)); }
+  catch(_){ fallbackCopy(text); }
+}
+function fallbackCopy(text){
+  const ta = document.createElement("textarea");
+  ta.value = text; document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); } catch(_){}
+  document.body.removeChild(ta);
+}
+
+/* ---------------- Deterministic first paint (no randomness) ---------------- */
+onRegionChange();
+</script>
+</body>
+</html>
