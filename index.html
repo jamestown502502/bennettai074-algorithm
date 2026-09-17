@@ -305,7 +305,7 @@ function evaluate(){
     { n: "Harvest limiter", r: capped
         ? `Planned ${target} kg capped to ${suggested.toFixed(1)} kg (80% of ${reg.quotaDaily} kg sample headroom)`
         : `Planned ${target} kg within the ${suggested.toFixed(1)} kg sample headroom`, ok: true },
-    { n: "Wind", r: `${wind} kn${windCaution ? " — caution flag (sample rule)" : " — within caution threshold"}`, ok: !windCaution }
+    { n: "Wind", r: `${wind} kn${windCaution ? " — caution flag (sample rule)" : " — within caution threshold"}`, ok: !windCaution, warn: windCaution }
   ];
 
   return { verdict, failed, checks, site, reg, score, best, capped, suggested, windCaution, target };
@@ -334,9 +334,10 @@ function render(){
   if (e.failed.length) reasonParts.push("blocked: " + e.failed.join("; "));
   $("verdictReason").textContent = "Reason: " + reasonParts.join(" · ") + " — sample rules, not a legal or safety determination.";
 
-  $("checks").innerHTML = e.checks.map((c,i) => `
-    <li><span class="num">${i+1}</span><span>${c.n} — ${c.r}</span>
-    <span class="flag ${c.ok ? "ok" : "risk"}">${c.ok ? "PASS" : "FAIL"}</span></li>`).join("");
+  $("checks").innerHTML = e.checks.map((c,i) => {
+    const flag = c.warn ? `<span class="flag warn">CAUTION</span>` : `<span class="flag ${c.ok ? "ok" : "risk"}">${c.ok ? "PASS" : "FAIL"}</span>`;
+    return `<li><span class="num">${i+1}</span><span>${c.n} — ${c.r}</span>${flag}</li>`;
+  }).join("");
 
   $("metrics").innerHTML = `
     <div class="metric"><div class="v">${e.score}/100</div><div class="k">Site suitability (sample)</div></div>
